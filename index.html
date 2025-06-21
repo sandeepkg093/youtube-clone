@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VideoTube</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: { primary: "#FF0000", secondary: "#333333" },
+            borderRadius: {
+              button: "8px",
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyBPJdnEX_8uBhFv2RSXQ97kXoPykGWVHA0",
+        authDomain: "syncmirror-53cba.firebaseapp.com",
+        databaseURL: "https://syncmirror-53cba-default-rtdb.firebaseio.com",
+        projectId: "syncmirror-53cba",
+        storageBucket: "syncmirror-53cba.firebasestorage.app",
+        messagingSenderId: "595682599113",
+        appId: "1:595682599113:web:e59310f299b824d066ed18",
+        measurementId: "G-SKGBF4F367",
+      };
+      firebase.initializeApp(firebaseConfig);
+    </script>
+
+    <!-- Icons and Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Roboto", sans-serif;
+        background-color: #000;
+        color: #fff;
+      }
+      .search-input:focus {
+        outline: none;
+      }
+      .search-input::placeholder {
+        color: #9ca3af;
+      }
+      .suggestions {
+        position: absolute;
+        background-color: #1f2937;
+        width: 100%;
+        top: 100%;
+        left: 0;
+        z-index: 50;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .suggestion-item {
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+      }
+      .suggestion-item:hover {
+        background-color: #374151;
+      }
+    </style>
+  </head>
+  <body class="bg-black text-white min-h-screen">
+    <!-- Header -->
+    <header
+      class="fixed top-0 left-0 w-full bg-black z-50 px-4 py-2 flex items-center justify-between"
+    >
+      <div class="flex items-center">
+        <div
+          class="w-10 h-10 flex items-center justify-center text-primary mr-1"
+        >
+          <i class="ri-youtube-fill ri-2x"></i>
+        </div>
+        <h1 class="text-xl font-bold">VideoTube</h1>
+      </div>
+      <div class="w-10 h-10 flex items-center justify-center cursor-pointer">
+        <i class="ri-search-line ri-xl"></i>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-20 pb-16 px-4 flex flex-col items-center">
+      <div class="w-full mb-8 relative">
+        <div class="relative w-full flex items-center">
+          <input
+            type="text"
+            class="search-input w-full bg-secondary py-3 px-12 rounded-full text-white"
+            placeholder="Search VideoTube"
+          />
+          <div
+            class="absolute right-4 w-6 h-6 flex items-center justify-center text-gray-400 cursor-pointer"
+          >
+            <i class="ri-search-line"></i>
+          </div>
+        </div>
+        <div id="suggestions" class="suggestions hidden"></div>
+      </div>
+      <section id="results" class="w-full space-y-4"></section>
+      <section id="player" class="w-full hidden mt-4"></section>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav
+      class="fixed bottom-0 left-0 w-full bg-black border-t border-gray-800 flex justify-around py-2"
+    >
+      <a
+        href="#"
+        class="flex flex-col items-center justify-center w-1/3 cursor-pointer text-white"
+      >
+        <i class="ri-home-5-fill ri-lg"></i>
+        <span class="text-xs mt-1">Home</span>
+      </a>
+      <a
+        href="#"
+        class="flex flex-col items-center justify-center w-1/3 cursor-pointer text-gray-500"
+      >
+        <i class="ri-play-mini-fill ri-lg"></i>
+        <span class="text-xs mt-1">Shorts</span>
+      </a>
+      <a
+        href="#"
+        class="flex flex-col items-center justify-center w-1/3 cursor-pointer text-gray-500"
+      >
+        <i class="ri-user-3-line ri-lg"></i>
+        <span class="text-xs mt-1">You</span>
+      </a>
+    </nav>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const apiKey = "AIzaSyDB7kb4a_Lc2nCDaVGmL9FAGEgk8PQmtWQ";
+        const searchInput = document.querySelector(".search-input");
+        const searchIcon = document.querySelector(".ri-search-line");
+        const resultsSection = document.querySelector("#results");
+        const playerSection = document.querySelector("#player");
+        const suggestionsBox = document.querySelector("#suggestions");
+
+        function searchYouTube() {
+          const query = searchInput.value.trim();
+          if (!query) return;
+
+          const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(
+            query
+          )}&key=${apiKey}`;
+          fetch(url)
+            .then((res) => res.json())
+            .then((data) => displayResults(data.items))
+            .catch((err) => console.error("YouTube Fetch Error:", err));
+        }
+
+        function displayResults(videos) {
+          resultsSection.innerHTML = "";
+          playerSection.innerHTML = "";
+          playerSection.classList.add("hidden");
+          suggestionsBox.classList.add("hidden");
+
+          videos.forEach((video) => {
+            const videoElement = document.createElement("div");
+            videoElement.className =
+              "bg-secondary rounded-lg p-3 flex cursor-pointer";
+            videoElement.innerHTML = `
+              <div class="w-24 h-16 rounded overflow-hidden mr-3 flex-shrink-0">
+                <img src="${video.snippet.thumbnails.default.url}" alt="${video.snippet.title}" class="w-full h-full object-cover">
+              </div>
+              <div class="flex-1">
+                <h4 class="font-medium text-sm mb-1 line-clamp-2">${video.snippet.title}</h4>
+                <p class="text-xs text-gray-400">${video.snippet.channelTitle}</p>
+              </div>
+            `;
+            videoElement.addEventListener("click", function () {
+              playVideo(video.id.videoId, video.snippet);
+            });
+            resultsSection.appendChild(videoElement);
+          });
+        }
+
+        function playVideo(videoId, snippet) {
+          playerSection.innerHTML = `
+            <div class="aspect-video w-full mb-4">
+              <iframe
+                class="w-full h-full rounded-lg"
+                src="https://www.youtube.com/embed/${videoId}?autoplay=1"
+                title="${snippet.title}"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
+              ></iframe>
+            </div>
+            <h2 class="text-lg font-bold mb-1">${snippet.title}</h2>
+            <p class="text-sm text-gray-400 mb-4">${snippet.channelTitle}</p>
+            <p class="text-sm">${
+              snippet.description || "No description available."
+            }</p>
+          `;
+          playerSection.classList.remove("hidden");
+          window.scrollTo({
+            top: playerSection.offsetTop - 60,
+            behavior: "smooth",
+          });
+        }
+
+        function fetchSuggestions(query) {
+          const callbackName =
+            "jsonp_callback_" + Math.round(100000 * Math.random());
+
+          window[callbackName] = function (data) {
+            suggestionsBox.innerHTML = "";
+            data[1].forEach((suggestion) => {
+              const item = document.createElement("div");
+              item.className = "suggestion-item";
+              item.textContent = suggestion;
+              item.addEventListener("click", () => {
+                searchInput.value = suggestion;
+                suggestionsBox.classList.add("hidden");
+                searchYouTube();
+              });
+              suggestionsBox.appendChild(item);
+            });
+            suggestionsBox.classList.remove("hidden");
+
+            // Clean up the script tag and callback
+            document.head.removeChild(script);
+            delete window[callbackName];
+          };
+
+          const script = document.createElement("script");
+          script.src = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(
+            query
+          )}&callback=${callbackName}`;
+          document.head.appendChild(script);
+        }
+
+        searchInput.addEventListener("input", function () {
+          const value = this.value.trim();
+          if (value.length > 0) {
+            fetchSuggestions(value);
+          } else {
+            suggestionsBox.classList.add("hidden");
+          }
+        });
+
+        searchIcon.addEventListener("click", searchYouTube);
+        searchInput.addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            searchYouTube();
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
