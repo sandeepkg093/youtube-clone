@@ -2,10 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>YouTube</title>
 
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script>
       tailwind.config = {
@@ -37,7 +37,7 @@
       firebase.initializeApp(firebaseConfig);
     </script>
 
-    <!-- Icons and Fonts -->
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -48,39 +48,11 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css"
       rel="stylesheet"
     />
-    <style>
-      body {
-        font-family: "Roboto", sans-serif;
-        background-color: #000;
-        color: #fff;
-      }
-      .search-input:focus {
-        outline: none;
-      }
-      .search-input::placeholder {
-        color: #9ca3af;
-      }
-      .suggestions {
-        position: absolute;
-        background-color: #1f2937;
-        width: 100%;
-        top: 100%;
-        left: 0;
-        z-index: 50;
-        border-radius: 0.5rem;
-        overflow: hidden;
-        max-height: 200px;
-        overflow-y: auto;
-      }
-      .suggestion-item {
-        padding: 0.5rem 1rem;
-        cursor: pointer;
-      }
-      .suggestion-item:hover {
-        background-color: #374151;
-      }
-    </style>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css" />
   </head>
+
   <body class="bg-black text-white min-h-screen">
     <!-- Header -->
     <header
@@ -106,14 +78,17 @@
       >
         <i class="ri-youtube-fill ri-6x"></i>
       </div>
-      <div class="w-full mb-8 relative">
+      <div class="w-full mb-8 relative max-w-xl">
         <div class="relative w-full flex items-center">
           <input
+            id="search-input"
             type="text"
             class="search-input w-full bg-secondary py-3 px-12 rounded-full text-white"
             placeholder="Search YouTube"
+            autocomplete="off"
           />
           <div
+            id="search-btn"
             class="absolute right-4 w-6 h-6 flex items-center justify-center text-gray-400 cursor-pointer"
           >
             <i class="ri-search-line"></i>
@@ -124,15 +99,15 @@
       </div>
       <div
         id="placeholderBox"
-        class="w-full mt-20 mb-4 bg-secondary rounded-xl p-4 text-center"
+        class="w-full max-w-xl mt-20 mb-4 bg-secondary rounded-xl p-4 text-center"
       >
         <p class="text-white font-bold text-lg">Try searching to get started</p>
         <p class="text-gray-400 text-sm mt-2">
           Start watching videos to help us build a feel of videos you'll love
         </p>
       </div>
-      <section id="results" class="w-full space-y-4"></section>
-      <section id="player" class="w-full hidden mt-4"></section>
+      <section id="results" class="w-full max-w-xl space-y-4"></section>
+      <section id="player" class="w-full max-w-xl hidden mt-4"></section>
     </main>
 
     <!-- Bottom Navigation -->
@@ -162,159 +137,7 @@
       </a>
     </nav>
 
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const apiKey = "AIzaSyDB7kb4a_Lc2nCDaVGmL9FAGEgk8PQmtWQ";
-        const searchInput = document.querySelector(".search-input");
-        const searchIcon = document.querySelector(".ri-search-line");
-        const resultsSection = document.querySelector("#results");
-        const playerSection = document.querySelector("#player");
-        const suggestionsBox = document.querySelector("#suggestions");
-
-        function searchYouTube() {
-          const query = searchInput.value.trim();
-          if (!query) return;
-
-          const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${encodeURIComponent(
-            query
-          )}&key=${apiKey}`;
-          fetch(url)
-            .then((res) => res.json())
-            .then((data) => displayResults(data.items))
-            .catch((err) => console.error("YouTube Fetch Error:", err));
-        }
-
-        function displayResults(videos) {
-          const placeholderBox = document.getElementById("placeholderBox");
-
-          resultsSection.innerHTML = "";
-          playerSection.innerHTML = "";
-          playerSection.classList.add("hidden");
-          suggestionsBox.classList.add("hidden");
-
-          if (videos.length > 0) {
-            placeholderBox.classList.add("hidden");
-          }
-
-          videos.forEach((video) => {
-            const videoElement = document.createElement("div");
-            videoElement.className =
-              "bg-secondary rounded-lg p-3 flex cursor-pointer";
-            videoElement.innerHTML = `
-              <div class="w-24 h-16 rounded overflow-hidden mr-3 flex-shrink-0">
-                <img src="${video.snippet.thumbnails.default.url}" alt="${video.snippet.title}" class="w-full h-full object-cover">
-              </div>
-              <div class="flex-1">
-                <h4 class="font-medium text-sm mb-1 line-clamp-2">${video.snippet.title}</h4>
-                <p class="text-xs text-gray-400">${video.snippet.channelTitle}</p>
-              </div>
-            `;
-            videoElement.addEventListener("click", function () {
-              playVideo(video.id.videoId, video.snippet);
-            });
-            resultsSection.appendChild(videoElement);
-          });
-        }
-
-        function playVideo(videoId, snippet) {
-          playerSection.innerHTML = `
-            <div class="aspect-video w-full mb-4">
-              <iframe
-                class="w-full h-full rounded-lg"
-                src="https://www.youtube.com/embed/${videoId}?autoplay=1"
-                title="${snippet.title}"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-              ></iframe>
-            </div>
-            <h2 class="text-lg font-bold mb-1">${snippet.title}</h2>
-            <p class="text-sm text-gray-400 mb-4">${snippet.channelTitle}</p>
-            <p class="text-sm">${
-              snippet.description || "No description available."
-            }</p>
-          `;
-          playerSection.classList.remove("hidden");
-          window.scrollTo({
-            top: playerSection.offsetTop - 60,
-            behavior: "smooth",
-          });
-        }
-
-        let activeScript = null;
-        let lastCallbackName = null;
-
-        function fetchSuggestions(query) {
-          // Cancel previous callback if any
-          if (lastCallbackName) {
-            delete window[lastCallbackName];
-            lastCallbackName = null;
-          }
-
-          // Remove previous script tag if it exists
-          if (activeScript) {
-            document.head.removeChild(activeScript);
-            activeScript = null;
-          }
-
-          const callbackName =
-            "jsonp_callback_" + Math.round(100000 * Math.random());
-          lastCallbackName = callbackName;
-
-          window[callbackName] = function (data) {
-            // If input is now empty, don't show suggestions
-            if (!searchInput.value.trim()) {
-              delete window[callbackName];
-              lastCallbackName = null;
-              return;
-            }
-
-            suggestionsBox.innerHTML = "";
-            data[1].forEach((suggestion) => {
-              const item = document.createElement("div");
-              item.className = "suggestion-item";
-              item.textContent = suggestion;
-              item.addEventListener("click", () => {
-                searchInput.value = suggestion;
-                suggestionsBox.classList.add("hidden");
-                searchYouTube();
-              });
-              suggestionsBox.appendChild(item);
-            });
-            suggestionsBox.classList.remove("hidden");
-
-            // Clean up
-            document.head.removeChild(activeScript);
-            delete window[callbackName];
-            activeScript = null;
-            lastCallbackName = null;
-          };
-
-          const script = document.createElement("script");
-          script.src = `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(
-            query
-          )}&callback=${callbackName}`;
-          document.head.appendChild(script);
-          activeScript = script;
-        }
-
-        searchInput.addEventListener("input", function () {
-          const value = this.value.trim();
-          if (value.length > 0) {
-            fetchSuggestions(value);
-          } else {
-            suggestionsBox.innerHTML = "";
-            suggestionsBox.classList.add("hidden");
-          }
-        });
-
-        searchIcon.addEventListener("click", searchYouTube);
-        searchInput.addEventListener("keypress", function (e) {
-          if (e.key === "Enter") {
-            searchYouTube();
-          }
-        });
-      });
-    </script>
+    <!-- Script -->
+    <script src="script.js"></script>
   </body>
 </html>
