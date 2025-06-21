@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VideoTube</title>
+    <title>YouTube</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
@@ -92,7 +92,7 @@
         >
           <i class="ri-youtube-fill ri-2x"></i>
         </div>
-        <h1 class="text-xl font-bold">VideoTube</h1>
+        <h1 class="text-xl font-bold">YouTube</h1>
       </div>
       <div class="w-10 h-10 flex items-center justify-center cursor-pointer">
         <i class="ri-search-line ri-xl"></i>
@@ -101,12 +101,17 @@
 
     <!-- Main Content -->
     <main class="pt-20 pb-16 px-4 flex flex-col items-center">
+      <div
+        class="w-10 h-10 flex items-center justify-center text-primary mr-1 mb-10"
+      >
+        <i class="ri-youtube-fill ri-6x"></i>
+      </div>
       <div class="w-full mb-8 relative">
         <div class="relative w-full flex items-center">
           <input
             type="text"
             class="search-input w-full bg-secondary py-3 px-12 rounded-full text-white"
-            placeholder="Search VideoTube"
+            placeholder="Search YouTube"
           />
           <div
             class="absolute right-4 w-6 h-6 flex items-center justify-center text-gray-400 cursor-pointer"
@@ -114,7 +119,17 @@
             <i class="ri-search-line"></i>
           </div>
         </div>
+
         <div id="suggestions" class="suggestions hidden"></div>
+      </div>
+      <div
+        id="placeholderBox"
+        class="w-full mt-20 mb-4 bg-secondary rounded-xl p-4 text-center"
+      >
+        <p class="text-white font-bold text-lg">Try searching to get started</p>
+        <p class="text-gray-400 text-sm mt-2">
+          Start watching videos to help us build a feel of videos you'll love
+        </p>
       </div>
       <section id="results" class="w-full space-y-4"></section>
       <section id="player" class="w-full hidden mt-4"></section>
@@ -170,10 +185,16 @@
         }
 
         function displayResults(videos) {
+          const placeholderBox = document.getElementById("placeholderBox");
+
           resultsSection.innerHTML = "";
           playerSection.innerHTML = "";
           playerSection.classList.add("hidden");
           suggestionsBox.classList.add("hidden");
+
+          if (videos.length > 0) {
+            placeholderBox.classList.add("hidden");
+          }
 
           videos.forEach((video) => {
             const videoElement = document.createElement("div");
@@ -220,11 +241,34 @@
           });
         }
 
+        let activeScript = null;
+        let lastCallbackName = null;
+
         function fetchSuggestions(query) {
+          // Cancel previous callback if any
+          if (lastCallbackName) {
+            delete window[lastCallbackName];
+            lastCallbackName = null;
+          }
+
+          // Remove previous script tag if it exists
+          if (activeScript) {
+            document.head.removeChild(activeScript);
+            activeScript = null;
+          }
+
           const callbackName =
             "jsonp_callback_" + Math.round(100000 * Math.random());
+          lastCallbackName = callbackName;
 
           window[callbackName] = function (data) {
+            // If input is now empty, don't show suggestions
+            if (!searchInput.value.trim()) {
+              delete window[callbackName];
+              lastCallbackName = null;
+              return;
+            }
+
             suggestionsBox.innerHTML = "";
             data[1].forEach((suggestion) => {
               const item = document.createElement("div");
@@ -239,9 +283,11 @@
             });
             suggestionsBox.classList.remove("hidden");
 
-            // Clean up the script tag and callback
-            document.head.removeChild(script);
+            // Clean up
+            document.head.removeChild(activeScript);
             delete window[callbackName];
+            activeScript = null;
+            lastCallbackName = null;
           };
 
           const script = document.createElement("script");
@@ -249,6 +295,7 @@
             query
           )}&callback=${callbackName}`;
           document.head.appendChild(script);
+          activeScript = script;
         }
 
         searchInput.addEventListener("input", function () {
@@ -256,6 +303,7 @@
           if (value.length > 0) {
             fetchSuggestions(value);
           } else {
+            suggestionsBox.innerHTML = "";
             suggestionsBox.classList.add("hidden");
           }
         });
