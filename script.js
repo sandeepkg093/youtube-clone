@@ -1,29 +1,11 @@
 const apiKey = "AIzaSyDB7kb4a_Lc2nCDaVGmL9FAGEgk8PQmtWQ";
 let currentVideos = [];
-let currentUser = null;
 
 const searchInput = document.getElementById("search-input");
 const searchButton = document.getElementById("search-btn");
 const results = document.getElementById("results");
 const playerSection = document.getElementById("player");
 const suggestionsBox = document.getElementById("suggestions");
-
-// 🔐 FIREBASE AUTHENTICATION
-firebase.auth().onAuthStateChanged((user) => {
-  if (user) {
-    currentUser = user;
-    console.log("✅ User authenticated:", user.uid);
-  } else {
-    // Sign in anonymously if no user
-    firebase.auth().signInAnonymously()
-      .then(() => {
-        console.log("✅ Signed in anonymously");
-      })
-      .catch((error) => {
-        console.error("❌ Auth error:", error);
-      });
-  }
-});
 
 // 🔍 SEARCH FUNCTION
 async function searchYouTube() {
@@ -107,22 +89,18 @@ function playVideo(videoId, snippet) {
   playerSection.classList.remove("hidden");
   window.scrollTo({ top: playerSection.offsetTop - 60, behavior: "smooth" });
 
-  // Save video to Firebase (USER-SPECIFIC PATH)
-  if (currentUser) {
-    const dbRef = firebase.database().ref(`users/${currentUser.uid}/playedVideos`);
-    dbRef
-      .push({
-        videoId,
-        title: snippet.title,
-        channel: snippet.channelTitle,
-        thumbnail: snippet.thumbnails.default.url,
-        playedAt: new Date().toISOString(),
-      })
-      .then(() => console.log("✅ Video saved to Firebase!"))
-      .catch((error) => console.error("❌ Firebase Save Error:", error));
-  } else {
-    console.warn("⚠️ User not authenticated, cannot save video");
-  }
+  // Save video to Firebase
+  const dbRef = firebase.database().ref("playedVideos");
+  dbRef
+    .push({
+      videoId,
+      title: snippet.title,
+      channel: snippet.channelTitle,
+      thumbnail: snippet.thumbnails.default.url,
+      playedAt: new Date().toISOString(),
+    })
+    .then(() => console.log("✅ Video saved to Firebase!"))
+    .catch((error) => console.error("❌ Firebase Save Error:", error));
 }
 
 // 🧠 SUGGESTION SYSTEM (Google Suggest API)
